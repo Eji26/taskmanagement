@@ -39,14 +39,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Simulate API call with localStorage
-      const users = JSON.parse(localStorage.getItem('clarity_users') || '[]');
-      const user = users.find((u: any) => u.email === email && u.password === password);
-      
-      if (user) {
-        const userData = { id: user.id, username: user.username, email: user.email };
-        setUser(userData);
-        localStorage.setItem('clarity_user', JSON.stringify(userData));
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      if (!response.ok) return false;
+      const data = await response.json();
+      if (data.token) {
+        // Optionally decode token for user info, or fetch user info from backend
+        setUser({ id: '', username: '', email }); // You may want to fetch user info
+        localStorage.setItem('clarity_user', JSON.stringify({ id: '', username: '', email }));
+        localStorage.setItem('clarity_token', data.token);
         return true;
       }
       return false;
@@ -57,29 +61,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
-      // Simulate API call with localStorage
-      const users = JSON.parse(localStorage.getItem('clarity_users') || '[]');
-      
-      // Check if user already exists
-      if (users.find((u: any) => u.email === email)) {
-        return false;
+      const response = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password })
+      });
+      if (!response.ok) return false;
+      const data = await response.json();
+      if (data.message === "User registered successfully.") {
+        setUser({ id: '', username, email }); // You may want to fetch user info
+        localStorage.setItem('clarity_user', JSON.stringify({ id: '', username, email }));
+        return true;
       }
-
-      const newUser = {
-        id: Date.now().toString(),
-        username,
-        email,
-        password,
-        created_at: new Date().toISOString()
-      };
-
-      users.push(newUser);
-      localStorage.setItem('clarity_users', JSON.stringify(users));
-
-      const userData = { id: newUser.id, username: newUser.username, email: newUser.email };
-      setUser(userData);
-      localStorage.setItem('clarity_user', JSON.stringify(userData));
-      return true;
+      return false;
     } catch (error) {
       return false;
     }
