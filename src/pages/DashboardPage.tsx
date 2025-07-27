@@ -21,24 +21,23 @@ const DashboardPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // Load tasks from localStorage on component mount
-  useEffect(() => {
+  // Fetch tasks from backend on mount or when user changes
+  const fetchTasks = async () => {
     if (user) {
-      const storedTasks = localStorage.getItem(`clarity_tasks_${user.id}`);
-      if (storedTasks) {
-        setTasks(JSON.parse(storedTasks));
+      try {
+        const res = await fetch(`http://localhost:5000/api/tasks/user/${user.id}`);
+        const data = await res.json();
+        setTasks(data);
+      } catch {
+        setTasks([]);
       }
     }
-  }, [user]);
+  };
 
-  // Save tasks to localStorage whenever tasks change
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(`clarity_tasks_${user.id}`, JSON.stringify(tasks));
-    }
-  }, [tasks, user]);
-
-  // Filter tasks based on search and filters
+    fetchTasks();
+    // eslint-disable-next-line
+  }, [user]);
   useEffect(() => {
     let filtered = tasks;
 
@@ -63,22 +62,43 @@ const DashboardPage = () => {
     setFilteredTasks(filtered);
   }, [tasks, searchTerm, statusFilter, priorityFilter]);
 
-  const handleCreateTask = (taskData: Partial<Task>) => {
-    const newTask: Task = {
-      id: Date.now().toString(),
-      title: taskData.title!,
-      description: taskData.description,
-      due_date: taskData.due_date,
-      priority: taskData.priority || 'Medium',
-      status: taskData.status || 'To Do',
-      created_at: new Date().toISOString()
-    };
-
-    setTasks(prev => [newTask, ...prev]);
-    toast({
-      title: "Task Created",
-      description: `"${newTask.title}" has been added to your tasks.`
-    });
+  // Create a new task in the database
+  const handleCreateTask = async (taskData: Partial<Task>) => {
+    console.log('DEBUG user:', user);
+    if (!user || !user.id || !taskData.title) {
+      toast({
+        title: "Error",
+        description: "User or title missing."
+      });
+      return;
+    }
+    try {
+      const body = {
+        user_id: user.id,
+        title: taskData.title,
+        description: taskData.description || '',
+        due_date: taskData.due_date || null,
+        priority: taskData.priority || 'Medium',
+        status: taskData.status || 'To Do'
+      };
+      console.log('DEBUG body:', body);
+      const response = await fetch('http://localhost:5000/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) throw new Error('Failed to create task');
+      toast({
+        title: "Task Created",
+        description: `"${taskData.title}" has been added to your tasks.`
+      });
+      if (typeof fetchTasks === 'function') await fetchTasks();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not create task. Please try again."
+      });
+    }
   };
 
   const handleEditTask = (taskData: Partial<Task>) => {

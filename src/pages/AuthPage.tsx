@@ -92,9 +92,9 @@ const AuthPage = () => {
     if (success) {
       toast({
         title: "Account Created!",
-        description: "Welcome to ClarityTask. Let's get organized!"
+        description: "Registration successful. Please log in."
       });
-      navigate('/dashboard');
+      navigate('/auth');
     } else {
       toast({
         title: "Registration Failed",

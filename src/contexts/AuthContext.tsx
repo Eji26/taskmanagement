@@ -46,10 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (!response.ok) return false;
       const data = await response.json();
-      if (data.token) {
-        // Optionally decode token for user info, or fetch user info from backend
-        setUser({ id: '', username: '', email }); // You may want to fetch user info
-        localStorage.setItem('clarity_user', JSON.stringify({ id: '', username: '', email }));
+      if (data.token && data.user) {
+        setUser({ id: data.user.id, username: data.user.name || data.user.username || '', email: data.user.email });
+        localStorage.setItem('clarity_user', JSON.stringify({ id: data.user.id, username: data.user.name || data.user.username || '', email: data.user.email }));
         localStorage.setItem('clarity_token', data.token);
         return true;
       }
